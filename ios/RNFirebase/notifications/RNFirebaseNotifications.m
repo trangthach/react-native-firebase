@@ -5,6 +5,8 @@
 #import "RNFirebaseMessaging.h"
 #import "RNFirebaseUtil.h"
 #import <React/RCTUtils.h>
+#import "ABKPushUtils.h"
+#import "Appboy-iOS-SDK/AppboyKit.h"
 
 // For iOS 10 we need to implement UNUserNotificationCenterDelegate to receive display
 // notifications via APNS
@@ -221,15 +223,20 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
 #else
          withCompletionHandler:(void(^)())completionHandler NS_AVAILABLE_IOS(10_0) {
 #endif
-     NSDictionary *message = [self parseUNNotificationResponse:response];
-           
-     NSString *handlerKey = message[@"notification"][@"notificationId"];
-
-     [self sendJSEvent:self name:NOTIFICATIONS_NOTIFICATION_OPENED body:message];
-     if (handlerKey != nil) {
-         completionHandlers[handlerKey] = completionHandler;
-     } else {
-         completionHandler();
+     if ([ABKPushUtils isAppboyUserNotification:response]) {
+         [[Appboy sharedInstance] userNotificationCenter:center didReceiveNotificationResponse:response withCompletionHandler:completionHandler];
+     }
+     else{
+         NSDictionary *message = [self parseUNNotificationResponse:response];
+         
+         NSString *handlerKey = message[@"notification"][@"notificationId"];
+         
+         [self sendJSEvent:self name:NOTIFICATIONS_NOTIFICATION_OPENED body:message];
+         if (handlerKey != nil) {
+             completionHandlers[handlerKey] = completionHandler;
+         } else {
+             completionHandler();
+         }
      }
 }
 
